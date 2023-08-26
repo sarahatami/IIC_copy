@@ -14,9 +14,12 @@ def segmentation_create_dataloaders(config):  # define partitions and call datal
             config.mapping_assignment_partitions = ["all"]
             config.mapping_test_partitions = ["all"]
         elif "Coco164k" in config.dataset:
-            config.train_partitions = ["train2017", "val2017"]
+            config.train_partitions = ["train2017", "val2017"] #for_colab
             config.mapping_assignment_partitions = ["train2017", "val2017"]
             config.mapping_test_partitions = ["train2017", "val2017"]
+            # config.train_partitions = [ "val2017"]
+            # config.mapping_assignment_partitions = [ "val2017"]
+            # config.mapping_test_partitions = [ "val2017"]
         else:
             raise NotImplementedError
 
@@ -99,14 +102,11 @@ def _create_mapping_loader(config, dataset_class, partitions):
             **{"config": config,
                "split": partition,
                "purpose": "test"}  # return testing tuples, image and label
-        )
 
-        # print("imgs_curr:",imgs_curr) #<IIC.code.datasets.segmentation.cocostuff.Coco164kCuratedFew object at 0x000001BB548B65B0>
-
-
+        )  # <IIC.code.datasets.segmentation.cocostuff.Coco164kCuratedFew object>
         imgs_list.append(imgs_curr)
-    imgs = ConcatDataset(imgs_list)  # <class 'torch.utils.data.dataset.ConcatDataset'>
 
+    imgs = ConcatDataset(imgs_list)  # <class 'torch.utils.data.dataset.ConcatDataset'>
     dataloader = torch.utils.data.DataLoader(imgs,
                                              batch_size=config.batch_sz,
                                              # full batch

@@ -21,8 +21,10 @@ class SegmentationNet10aTrunk(VGGTrunk):
     self.conv_size = 3
     self.pad = 1
     self.cfg = cfg
+    print("we are in SegmentationNet10aTrunk")
     self.in_channels = config.in_channels if hasattr(config, 'in_channels') \
       else 3
+    print("self.in_channels ", self.in_channels)  # 3
 
     self.features = self._make_layers()
 

@@ -21,10 +21,8 @@ def segmentation_eval(config, net,
                                      get_data_fn=_segmentation_get_data)
 
   net.train()
-
   acc = stats_dict["best"]
   is_best = (len(config.epoch_acc) > 0) and (acc > max(config.epoch_acc))
-
   torch.cuda.empty_cache()
 
   if not return_only:
@@ -38,7 +36,7 @@ def segmentation_eval(config, net,
 
 
 def _segmentation_get_data(config, net, dataloader, sobel=False,
-                           using_IR=False, verbose=0):
+                           using_IR=False, verbose=0):  # dataloader = mapping_assignment_dataloader
   # returns (vectorised) cuda tensors for flat preds and targets
   # sister of _clustering_get_data
   print("_segmentation_get_data started**********************")
@@ -55,7 +53,6 @@ def _segmentation_get_data(config, net, dataloader, sobel=False,
     print("started _segmentation_get_data %s" % datetime.now())
     sys.stdout.flush()
 
-  # vectorised
   flat_predss_all = [torch.zeros((num_batches * samples_per_batch),
                                  dtype=torch.uint8).cuda() for _ in range(
     config.num_sub_heads)]
@@ -63,10 +60,7 @@ def _segmentation_get_data(config, net, dataloader, sobel=False,
                                  dtype=torch.uint8).cuda()
   mask_all = torch.zeros((num_batches * samples_per_batch),
                          dtype=torch.uint8).cuda()
-  print("size test1: ",len(flat_predss_all))
-  print("size test2: ",type(flat_targets_all))
-  print("size test2: ",len(flat_targets_all))
-  print("size test3: ",len(mask_all))
+
 
   if verbose > 0:
     batch_start = datetime.now()
@@ -90,15 +84,16 @@ def _segmentation_get_data(config, net, dataloader, sobel=False,
 
     # actual batch size
     actual_samples_curr = (
-      flat_targets.shape[0] * config.input_sz * config.input_sz)
+      flat_targets.shape[0] * config.input_sz * config.input_sz)  # 12*128*128=196608
     num_samples += actual_samples_curr
+
 
     # vectorise: collapse from 2D to 1D
     start_i = b_i * samples_per_batch
     for i in range(config.num_sub_heads):
-      x_outs_curr = x_outs[i]
+      x_outs_curr = x_outs[i]  # torch.Size([batch size, 3, 128, 128])
       assert (not x_outs_curr.requires_grad)
-      flat_preds_curr = torch.argmax(x_outs_curr, dim=1)
+      flat_preds_curr = torch.argmax(x_outs_curr, dim=1)  # torch.Size([batch size, 128, 128])
       flat_predss_all[i][
       start_i:(start_i + actual_samples_curr)] = flat_preds_curr.view(-1)
 
@@ -120,12 +115,15 @@ def _segmentation_get_data(config, net, dataloader, sobel=False,
     sys.stdout.flush()
 
   flat_predss_all = [flat_predss_all[i][:num_samples] for i in
-                     range(config.num_sub_heads)]
+                     range(config.num_sub_heads)]  # 23461888
+  # print("flat_predss_all",flat_predss_all[0].size())
   flat_targets_all = flat_targets_all[:num_samples]
   mask_all = mask_all[:num_samples]
 
   flat_predss_all = [flat_predss_all[i].masked_select(mask=mask_all) for i in
-                     range(config.num_sub_heads)]
+                     range(config.num_sub_heads)]  # 16181138
+  # print("flat_predss_all2",flat_predss_all[0].size())
+
   flat_targets_all = flat_targets_all.masked_select(mask=mask_all)
 
   if verbose > 0:
@@ -135,7 +133,7 @@ def _segmentation_get_data(config, net, dataloader, sobel=False,
   selected_samples = mask_all.sum()
   assert (len(flat_predss_all[0].shape) == 1 and
           len(flat_targets_all.shape) == 1)
-  assert (flat_predss_all[0].shape[0] == selected_samples)  # 16181138
+  assert (flat_predss_all[0].shape[0] == selected_samples)  # vector 1*16181138
   assert (flat_targets_all.shape[0] == selected_samples)
 
   return flat_predss_all, flat_targets_all

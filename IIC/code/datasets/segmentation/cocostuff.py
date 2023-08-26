@@ -362,12 +362,10 @@ class _Coco(data.Dataset):
 class _Coco164kCuratedFew(_Coco):
   """Base class
   This contains fields and methods common to all COCO 164k curated few datasets:
-
   (curated) Coco164kFew_Stuff
   (curated) Coco164kFew_Stuff_People
   (curated) Coco164kFew_Stuff_Animals
   (curated) Coco164kFew_Stuff_People_Animals
-
   """
 
   def __init__(self, **kwargs):
@@ -407,11 +405,12 @@ class _Coco164kCuratedFew(_Coco):
 
   def _load_data(self, image_id):
     # Set paths
-    # print("_load_data in _Coco164kCuratedFew: ")
     # print("image_id: ", image_id)
     image_path = osp.join(self.root, "images", self.split, image_id + ".jpg")
     label_path = osp.join(self.root, "annotations", "stuffthingmaps_trainval2017_2", self.split,
                           image_id + ".png")
+    print("image_path: ", image_path)
+    print("label_path: ", label_path)
 
     # image_path = osp.join(self.root, "images", "val2017", image_id + ".jpg").replace("\\","/")
     # label_path = osp.join(self.root, "annotations", "stuffthingmaps_trainval2017_2", "val2017",
@@ -429,7 +428,6 @@ class _Coco164kCuratedFew(_Coco):
 class _CocoFew(_Coco):
   """
   This contains methods for the following datasets
-
   COCO-few (6)
   COCOStuff-few (3)
   """

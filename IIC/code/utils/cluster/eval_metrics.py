@@ -38,7 +38,7 @@ def _hungarian_match(flat_preds, flat_targets, preds_k, targets_k):
             isinstance(flat_targets, torch.Tensor) and
             flat_preds.is_cuda and flat_targets.is_cuda)
 
-    num_samples = flat_targets.shape[0]  # int
+    num_samples = flat_targets.shape[0]  # 16181138
 
     # print("flat_preds:",type(flat_preds)) #tensor 1*[16181138]
     # print("flat_targets:",type(flat_targets)) #tensor 1*[16181138]
@@ -47,37 +47,31 @@ def _hungarian_match(flat_preds, flat_targets, preds_k, targets_k):
 
     assert (preds_k == targets_k)  # one to one
     num_k = preds_k
-    num_correct = np.zeros((num_k, num_k)) # matrix 3*3
+    num_correct = np.zeros((num_k, num_k))  # matrix 3*3
 
     for c1 in range(num_k):
         for c2 in range(num_k):
             # elementwise, so each sample contributes once
             votes = int(((flat_preds == c1) * (flat_targets == c2)).sum())
-            print("for loop -->", c1, c2, votes)
             num_correct[c1, c2] = votes
 
     # num_correct is small
-    match = linear_assignment(num_samples - num_correct)
+    match = linear_assignment(num_samples - num_correct)  # num_samples - num_correct = 3*3 matrix
 
-    print("num_samples", num_samples)
-    print("num_correct", num_correct)
-    print("match", match)  #tuple: (array([0, 1, 2], dtype=int64), array([1, 0, 2], dtype=int64))
-    print("match[0]",match[0])
-    print("match[1]",match[1])
+    print("num_samples - num_correct",num_samples - num_correct)
+    print("match", match)  # tuple:(array([0, 1, 2], dtype=int64), array([1, 0, 2], dtype=int64))
+    print("match[0]",match[0])  # [0, 1, 2]
+    print("match[1]",match[1])  # [1, 0, 2]
+    # match=[(1,2),(3,2),(1,3)]
+    # match=[match]
 
     # return as list of tuples, out_c to gt_c
     res = []
     print("#################################################3")
     for out_c, gt_c in match:
-        print("out_c: ", out_c)
-        print("gt_c: ", gt_c)
+        print("out_c, gt_c: ", out_c, gt_c)
         res.append((out_c, gt_c))
 
-    # #sara wrote
-    # for array in match:
-    #   res.append(array)
-    print("res: ",res)
-    print("res type: ",type(res))
     return res
 
 

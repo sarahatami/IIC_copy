@@ -68,7 +68,6 @@ def _clustering_get_data(config, net, dataloader, sobel=False,
   else:
     soft_predss_all = [soft_predss_all[i][:num_test] for i in
                        range(config.num_sub_heads)]
-    print("_clustering_get_data finished****************************88")
 
     return flat_predss_all, flat_targets_all, soft_predss_all
 
@@ -112,9 +111,9 @@ def cluster_subheads_eval(config, net,
     best_sub_head = best_sub_head_eval
 
   if config.mode == "IID":
-    assert (
-      config.mapping_assignment_partitions == config.mapping_test_partitions)
+    assert (config.mapping_assignment_partitions == config.mapping_test_partitions)
     test_accs = train_accs
+
   elif config.mode == "IID+":
     flat_predss_all, flat_targets_all, = \
       get_data_fn(config, net, mapping_test_dataloader, sobel=sobel,
@@ -173,6 +172,7 @@ def _get_assignment_data_matches(net, mapping_assignment_dataloader, config,
     sys.stdout.flush()
 
   num_test = flat_targets_all.shape[0]
+
   if verbose == 2:
     print("num_test: %d" % num_test)
     for c in range(config.gt_k):
@@ -191,9 +191,6 @@ def _get_assignment_data_matches(net, mapping_assignment_dataloader, config,
                                                         datetime.now()))
       sys.stdout.flush()
 
-    print("flat_predss_all", flat_predss_all)
-    print("flat_predss_all[i]", flat_predss_all[i])
-    print("flat_targets_all", flat_targets_all.size())
     if config.eval_mode == "hung":
       match = _hungarian_match(flat_predss_all[i], flat_targets_all,
                                preds_k=config.output_k,
@@ -216,17 +213,17 @@ def _get_assignment_data_matches(net, mapping_assignment_dataloader, config,
       found = torch.zeros(config.output_k)
       reordered_preds = torch.zeros(num_samples,
                                     dtype=flat_predss_all[0].dtype).cuda()
-
-      # for pred_i, target_i in match:
-      #   reordered_preds[flat_predss_all[i] == pred_i] = target_i
-      #   found[pred_i] = 1
-      #   if verbose == 2:
-      #     print((pred_i, target_i))
+      print("found",found.size())
+      print("reordered_preds",reordered_preds.size())
+      for pred_i, target_i in match:
+        reordered_preds[flat_predss_all[i] == pred_i] = target_i
+        found[pred_i] = 1
 
       # sara wrote
-      pred_i, target_i = torch.from_numpy(match[0]).cuda(), torch.from_numpy(match[1]).cuda()
-      reordered_preds[flat_predss_all[i] == pred_i] = target_i
-      found[pred_i] = 1
+      # pred_i, target_i = torch.from_numpy(match[0]).cuda(), torch.from_numpy(match[1]).cuda()
+      # reordered_preds[flat_predss_all[i] == pred_i] = target_i
+      # found[pred_i] = 1
+
       if verbose == 2:
         print((pred_i, target_i))
       assert (found.sum() == config.output_k)  # each output_k must get mapped
@@ -242,6 +239,9 @@ def _get_assignment_data_matches(net, mapping_assignment_dataloader, config,
     return all_matches
   else:
     return all_matches, all_accs
+
+
+
 
 
 def get_subhead_using_loss(config, dataloaders_head_B, net, sobel, lamb,

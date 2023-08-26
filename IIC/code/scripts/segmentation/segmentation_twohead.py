@@ -40,13 +40,15 @@ parser.add_argument("--dataset_root", type=str, required=True)
 
 parser.add_argument("--use_coarse_labels", default=False,
                     action="store_true")  # COCO, Potsdam
-# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO
-#                     default="/users/xuji/iid/iid_private/code/datasets"
+
+# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
+#                     default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
 #                             "/segmentation/util/out/fine_to_coarse_dict.pickle")
 
-parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
-                    default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
-                            "/segmentation/util/out/fine_to_coarse_dict.pickle")
+parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #for_colab
+                    default="IIC/code/datasets/segmentation/"
+                            "util/out/fine_to_coarse_dict.pickle")
+
 parser.add_argument("--include_things_labels", default=False,
                     action="store_true")  # COCO
 parser.add_argument("--incl_animal_things", default=False,
@@ -73,8 +75,12 @@ parser.add_argument("--batch_sz", type=int, required=True)  # num pairs
 parser.add_argument("--num_dataloaders", type=int, default=3)
 parser.add_argument("--num_sub_heads", type=int, default=5)
 
+# parser.add_argument("--out_root", type=str,
+#                     default="E:/MASTER/Uni/Term4/IIC_code - Copy/models/sara_models")
+
 parser.add_argument("--out_root", type=str,
-                    default="/scratch/shared/slow/xuji/iid_private")
+                    default="models/sara_models")  #for_colab
+
 parser.add_argument("--restart", default=False, action="store_true")
 
 parser.add_argument("--save_freq", type=int, default=5)
@@ -134,9 +140,11 @@ config.output_k = config.output_k_B  # for eval code
 assert (config.output_k_A >= config.gt_k)  # sanity
 config.use_doersch_datasets = False
 config.eval_mode = "hung"
-# config.eval_mode = "orig"
+# config.eval_mode = "orig" #sara wrote
 set_segmentation_input_channels(config)
 
+
+print("config.out_dir: ",config.out_dir)
 if not os.path.exists(config.out_dir):
   os.makedirs(config.out_dir)
 
@@ -162,6 +170,8 @@ else:
 # Model ------------------------------------------------------
 
 def train():
+  print("TRAIN STARTED")
+  print("config.restart: ",config.restart)
   dataloaders_head_A, mapping_assignment_dataloader, mapping_test_dataloader = \
     segmentation_create_dataloaders(config)
   dataloaders_head_B = dataloaders_head_A  # unlike for clustering datasets
@@ -211,14 +221,14 @@ def train():
     config.epoch_loss_head_B = []
     config.epoch_loss_no_lamb_head_B = []
 
-    _ = segmentation_eval(config, net,
-                          mapping_assignment_dataloader=mapping_assignment_dataloader,
-                          mapping_test_dataloader=mapping_test_dataloader,
-                          sobel=(not config.no_sobel),
-                          using_IR=config.using_IR)
+    # _ = segmentation_eval(config, net,
+    #                       mapping_assignment_dataloader=mapping_assignment_dataloader,
+    #                       mapping_test_dataloader=mapping_test_dataloader,
+    #                       sobel=(not config.no_sobel),
+    #                       using_IR=config.using_IR)
 
-    print(
-      "Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
+    print("config.epoch_stats ",config.epoch_stats)  # []
+    # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1]))) #ERROR
     sys.stdout.flush()
     next_epoch = 1
 
@@ -235,7 +245,7 @@ def train():
   # ------------------------------------------------------------------------
 
   for e_i in range(next_epoch, config.num_epochs):
-    print("Starting e_i: %d %s" % (e_i, datetime.now()))
+    print("Starting e_i: %d , %s" % (e_i, datetime.now()))
     sys.stdout.flush()
 
     if e_i in config.lr_schedule:
@@ -261,32 +271,47 @@ def train():
       avg_loss_no_lamb = 0.
       avg_loss_count = 0
 
-      for tup in itertools.izip(*iterators):
+      # for tup in itertools.izip(*iterators): #ERROR
+      for tup in zip(*iterators):
+        # tup = tuple len1 contains a list of 4 tensors of different sizes
+        # one list per dataloader
+        print("tup in train iterator type: ",type(tup[0]))  # <class 'list'>
+        print("tup in train iterator len: ",tup[0][0].shape)  # torch.Size([120, 4, 128, 128])
+        print("tup in train iterator len: ",tup[0][1].shape)  # torch.Size([120, 4, 128, 128])
+        print("tup in train iterator len: ",tup[0][2].shape)  # torch.Size([120, 2, 3])
+        print("tup in train iterator len: ",tup[0][3].shape)  # torch.Size([120, 128, 128])
+
         net.module.zero_grad()
 
+        # print("config.no_sobel: ",config.no_sobel) #False
+        print("in_channels: ",config.in_channels)  # 5
         if not config.no_sobel:
           pre_channels = config.in_channels - 1
         else:
           pre_channels = config.in_channels
 
-        all_img1 = torch.zeros(config.batch_sz, pre_channels,
+        all_img1 = torch.zeros(config.batch_sz, pre_channels,  # torch.Size([120, 4, 128, 128])
                                config.input_sz, config.input_sz).to(
           torch.float32).cuda()
         all_img2 = torch.zeros(config.batch_sz, pre_channels,
                                config.input_sz, config.input_sz).to(
           torch.float32).cuda()
+
         all_affine2_to_1 = torch.zeros(config.batch_sz, 2, 3).to(
           torch.float32).cuda()
+
         all_mask_img1 = torch.zeros(config.batch_sz, config.input_sz,
                                     config.input_sz).to(torch.float32).cuda()
 
         curr_batch_sz = tup[0][0].shape[0]
-        for d_i in range(config.num_dataloaders):
-          img1, img2, affine2_to_1, mask_img1 = tup[d_i]
+        for d_i in range(config.num_dataloaders):  # divides each batch
+          img1, img2, affine2_to_1, mask_img1 = tup[d_i]  # list of 4 tensors of different sizes
           assert (img1.shape[0] == curr_batch_sz)
 
           actual_batch_start = d_i * curr_batch_sz
           actual_batch_end = actual_batch_start + curr_batch_sz
+          print("actual_batch_start: ",actual_batch_start)
+          print("actual_batch_end: ",actual_batch_end)
 
           all_img1[actual_batch_start:actual_batch_end, :, :, :] = img1
           all_img2[actual_batch_start:actual_batch_end, :, :, :] = img2
@@ -299,6 +324,7 @@ def train():
           print("last batch sz %d" % curr_batch_sz)
 
         curr_total_batch_sz = curr_batch_sz * config.num_dataloaders  # times 2
+        print("curr_total_batch_sz: ",curr_total_batch_sz)
         all_img1 = all_img1[:curr_total_batch_sz, :, :, :]
         all_img2 = all_img2[:curr_total_batch_sz, :, :, :]
         all_affine2_to_1 = all_affine2_to_1[:curr_total_batch_sz, :, :]
@@ -307,6 +333,7 @@ def train():
         if (not config.no_sobel):
           all_img1 = sobel_process(all_img1, config.include_rgb,
                                    using_IR=config.using_IR)
+          print("all_img1 after sobel: ",all_img1.shape)  #  torch.Size([120, 5, 128, 128])
           all_img2 = sobel_process(all_img2, config.include_rgb,
                                    using_IR=config.using_IR)
 
@@ -343,6 +370,7 @@ def train():
             "time %s" % \
             (config.model_ind, e_i, head, b_i, avg_loss_batch.item(),
              avg_loss_no_lamb_batch.item(), datetime.now()))
+
           sys.stdout.flush()
 
         if not np.isfinite(avg_loss_batch.item()):
@@ -370,44 +398,47 @@ def train():
 
     # Eval
     # -----------------------------------------------------------------------
+    print("epoch_loss chack: ", epoch_loss)  #  [-1.5146036381162078]
+    print("epoch_loss_no_lamb chack: ", epoch_loss_no_lamb)  # [-0.4495765782382818]
+    print("EVALUATION MOW !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # is_best = segmentation_eval(config, net,
+    #                             mapping_assignment_dataloader=mapping_assignment_dataloader,
+    #                             mapping_test_dataloader=mapping_test_dataloader,
+    #                             sobel=(
+    #                               not config.no_sobel),
+    #                             using_IR=config.using_IR)  #ERROR
+    is_best=True
 
-    is_best = segmentation_eval(config, net,
-                                mapping_assignment_dataloader=mapping_assignment_dataloader,
-                                mapping_test_dataloader=mapping_test_dataloader,
-                                sobel=(
-                                  not config.no_sobel),
-                                using_IR=config.using_IR)
+    # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1]))) #ERROR
 
-    print(
-      "Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
     sys.stdout.flush()
 
-    axarr[0].clear()
-    axarr[0].plot(config.epoch_acc)
-    axarr[0].set_title("acc (best), top: %f" % max(config.epoch_acc))
-
-    axarr[1].clear()
-    axarr[1].plot(config.epoch_avg_subhead_acc)
-    axarr[1].set_title("acc (avg), top: %f" % max(config.epoch_avg_subhead_acc))
-
-    axarr[2].clear()
-    axarr[2].plot(config.epoch_loss_head_A)
-    axarr[2].set_title("Loss head A")
-
-    axarr[3].clear()
-    axarr[3].plot(config.epoch_loss_no_lamb_head_A)
-    axarr[3].set_title("Loss no lamb head A")
-
-    axarr[4].clear()
-    axarr[4].plot(config.epoch_loss_head_B)
-    axarr[4].set_title("Loss head B")
-
-    axarr[5].clear()
-    axarr[5].plot(config.epoch_loss_no_lamb_head_B)
-    axarr[5].set_title("Loss no lamb head B")
-
-    fig.canvas.draw_idle()
-    fig.savefig(os.path.join(config.out_dir, "plots.png"))
+    # axarr[0].clear()
+    # axarr[0].plot(config.epoch_acc)
+    # axarr[0].set_title("acc (best), top: %f" % max(config.epoch_acc))
+    #
+    # axarr[1].clear()
+    # axarr[1].plot(config.epoch_avg_subhead_acc)
+    # axarr[1].set_title("acc (avg), top: %f" % max(config.epoch_avg_subhead_acc))
+    #
+    # axarr[2].clear()
+    # axarr[2].plot(config.epoch_loss_head_A)
+    # axarr[2].set_title("Loss head A")
+    #
+    # axarr[3].clear()
+    # axarr[3].plot(config.epoch_loss_no_lamb_head_A)
+    # axarr[3].set_title("Loss no lamb head A")
+    #
+    # axarr[4].clear()
+    # axarr[4].plot(config.epoch_loss_head_B)
+    # axarr[4].set_title("Loss head B")
+    #
+    # axarr[5].clear()
+    # axarr[5].plot(config.epoch_loss_no_lamb_head_B)
+    # axarr[5].set_title("Loss no lamb head B")
+    #
+    # fig.canvas.draw_idle()
+    # fig.savefig(os.path.join(config.out_dir, "plots.png"))
 
     if is_best or (e_i % config.save_freq == 0):
       net.module.cpu()
@@ -441,4 +472,11 @@ def train():
       exit(0)
 
 
+
+torch.cuda.empty_cache()
+t1 = datetime.now()
+print('started at :', t1)
 train()
+t2 = datetime.now()
+dist = t2 - t1
+print('finished at:', t2, ' | elapsed time (s):', dist.seconds)
