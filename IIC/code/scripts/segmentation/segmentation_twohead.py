@@ -245,7 +245,7 @@ def train():
   # ------------------------------------------------------------------------
 
   for e_i in range(next_epoch, config.num_epochs):
-    print("Starting e_i: %d , %s" % (e_i, datetime.now()))
+    print("***Starting e_i: %d , %s" % (e_i, datetime.now()))
     sys.stdout.flush()
 
     if e_i in config.lr_schedule:
@@ -273,19 +273,18 @@ def train():
 
       # for tup in itertools.izip(*iterators): #ERROR
       for tup in zip(*iterators):
-        # tup = tuple len1 contains a list of 4 tensors of different sizes
+        # tup = tuple len1 contains a list of 4 tensors of different sizes ([_,_,_,_])
         # one list per dataloader
-        print("tup in train iterator type: ",type(tup[0]))  # <class 'list'>
-        print("tup in train iterator len: ",tup[0][0].shape)  # torch.Size([120, 4, 128, 128])
-        print("tup in train iterator len: ",tup[0][1].shape)  # torch.Size([120, 4, 128, 128])
-        print("tup in train iterator len: ",tup[0][2].shape)  # torch.Size([120, 2, 3])
-        print("tup in train iterator len: ",tup[0][3].shape)  # torch.Size([120, 128, 128])
+        # print("tup in train iterator type: ",type(tup[0]))  # <class 'list'>
+        # print("tup in train iterator len: ",tup[0][0].shape)  # torch.Size([120, 4, 128, 128]) img1
+        # print("tup in train iterator len: ",tup[0][1].shape)  # torch.Size([120, 4, 128, 128]) img2
+        # print("tup in train iterator len: ",tup[0][2].shape)  # torch.Size([120, 2, 3]) affine2_to_1
+        # print("tup in train iterator len: ",tup[0][3].shape)  # torch.Size([120, 128, 128])  mask_img1
 
         net.module.zero_grad()
 
-        # print("config.no_sobel: ",config.no_sobel) #False
-        print("in_channels: ",config.in_channels)  # 5
-        if not config.no_sobel:
+        # print("in_channels: ",config.in_channels)  # 5
+        if not config.no_sobel:  # True
           pre_channels = config.in_channels - 1
         else:
           pre_channels = config.in_channels
@@ -304,14 +303,19 @@ def train():
                                     config.input_sz).to(torch.float32).cuda()
 
         curr_batch_sz = tup[0][0].shape[0]
-        for d_i in range(config.num_dataloaders):  # divides each batch
+        for d_i in range(config.num_dataloaders):
           img1, img2, affine2_to_1, mask_img1 = tup[d_i]  # list of 4 tensors of different sizes
           assert (img1.shape[0] == curr_batch_sz)
 
+          # print(img1.shape)  # ([120/dl_num, 4, 128, 128])
+          # print(img2.shape)  # ([120/dl_num, 4, 128, 128])
+          # print(affine2_to_1.shape)  # ([120/dl_num, 2, 3])
+          # print(mask_img1.shape)  # ([120/dl_num, 128, 128])
+
           actual_batch_start = d_i * curr_batch_sz
           actual_batch_end = actual_batch_start + curr_batch_sz
-          print("actual_batch_start: ",actual_batch_start)
-          print("actual_batch_end: ",actual_batch_end)
+          # print("actual_batch_start: ",actual_batch_start)
+          # print("actual_batch_end: ",actual_batch_end)
 
           all_img1[actual_batch_start:actual_batch_end, :, :, :] = img1
           all_img2[actual_batch_start:actual_batch_end, :, :, :] = img2
@@ -324,7 +328,7 @@ def train():
           print("last batch sz %d" % curr_batch_sz)
 
         curr_total_batch_sz = curr_batch_sz * config.num_dataloaders  # times 2
-        print("curr_total_batch_sz: ",curr_total_batch_sz)
+        # print("curr_total_batch_sz: ",curr_total_batch_sz)
         all_img1 = all_img1[:curr_total_batch_sz, :, :, :]
         all_img2 = all_img2[:curr_total_batch_sz, :, :, :]
         all_affine2_to_1 = all_affine2_to_1[:curr_total_batch_sz, :, :]
@@ -333,12 +337,12 @@ def train():
         if (not config.no_sobel):
           all_img1 = sobel_process(all_img1, config.include_rgb,
                                    using_IR=config.using_IR)
-          print("all_img1 after sobel: ",all_img1.shape)  #  torch.Size([120, 5, 128, 128])
+          # print("all_img1 after sobel: ",all_img1.shape)  #  torch.Size([120, 5, 128, 128])
           all_img2 = sobel_process(all_img2, config.include_rgb,
                                    using_IR=config.using_IR)
 
-        x1_outs = net(all_img1, head=head)
-        x2_outs = net(all_img2, head=head)
+        x1_outs = net(all_img1, head=head)  # [torch.Size([120, 15, 128, 128])]
+        x2_outs = net(all_img2, head=head)  # [torch.Size([120, 15, 128, 128])]
 
         avg_loss_batch = None  # avg over the heads
         avg_loss_no_lamb_batch = None

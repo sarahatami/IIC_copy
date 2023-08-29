@@ -34,7 +34,8 @@ def segmentation_create_dataloaders(config):  # define partitions and call datal
 
 def make_Coco_dataloaders(config):
     print("WE ARE IN make_Coco_dataloaders!")
-    dataset_class = cocostuff.__dict__[config.dataset]  # <class 'IIC.code.datasets.segmentation.cocostuff.Coco164kCuratedFew'>
+    dataset_class = cocostuff.__dict__[config.dataset]
+    # print("dataset_class: ", dataset_class)# <class 'IIC.code.datasets.segmentation.cocostuff.Coco164kCuratedFew'>
     # print("cocostuff: ", cocostuff)  # module 'IIC.code.datasets.segmentation.cocostuff'
     # print("config.dataset: ", config.dataset)  # Coco164kCuratedFew
 
@@ -52,10 +53,12 @@ def make_Coco_dataloaders(config):
 
 
 def _create_dataloaders(config, dataset_class):
+    print("WE ARE IN _create_dataloaders")
+
     # unlike in clustering, each dataloader here returns pairs of images - we
     # need the matrix relation between them
     dataloaders = []
-    do_shuffle = (config.num_dataloaders == 1)
+    do_shuffle = (config.num_dataloaders == 1)  # TRUE
     for d_i in range(config.num_dataloaders):  # 1 dl for now
         print("Creating paired dataloader %d out of %d time %s" %
               (d_i, config.num_dataloaders, datetime.now()))
@@ -96,7 +99,6 @@ def _create_dataloaders(config, dataset_class):
 
 def _create_mapping_loader(config, dataset_class, partitions):
     imgs_list = []  # list of classes
-    print("partition ",partitions)
     for partition in partitions:  # ["val2017"]
         imgs_curr = dataset_class(
             **{"config": config,

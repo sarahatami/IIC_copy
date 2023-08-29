@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 import scipy.io as sio
 import torch
+import torchvision
 import torchvision.transforms as tvt
 from PIL import Image
 from torch.utils import data
@@ -106,12 +107,19 @@ class _Coco(data.Dataset):
     # This returns gpu tensors.
     # label is passed in canonical [0 ... 181] indexing
 
+    ###################################################################
+    # print(img.shape)  # (400, 500, 3) or (482, 640, 3)
+    # trans = torchvision.transforms.ToPILImage()
+    # outi = trans(img)
+    # outi.show()
+
+    ###################################################################
     assert (img.shape[:2] == label.shape)
     img = img.astype(np.float32)
     label = label.astype(np.int32)
 
     # shrink original images, for memory purposes, otherwise no point
-    if self.pre_scale_all:
+    if self.pre_scale_all:  # True
       assert (self.pre_scale_factor < 1.)
       img = cv2.resize(img, dsize=None, fx=self.pre_scale_factor,
                        fy=self.pre_scale_factor,
@@ -121,7 +129,7 @@ class _Coco(data.Dataset):
                          interpolation=cv2.INTER_NEAREST)
 
     # basic augmentation transforms for both img1 and img2
-    if self.use_random_scale:
+    if self.use_random_scale:  # False
       # bilinear interp requires float img
       scale_factor = (np.random.rand() * (self.scale_max - self.scale_min)) + \
                      self.scale_min
@@ -130,11 +138,22 @@ class _Coco(data.Dataset):
       label = cv2.resize(label, dsize=None, fx=scale_factor, fy=scale_factor,
                          interpolation=cv2.INTER_NEAREST)
 
+    # print(img.shape)  # (132, 165, 3) or (159, 211, 3)
+    # outi = trans(img.astype('uint8'))
+    # outi.show()
+
+    ###################################################################
     # random crop to input sz
     img, coords = pad_and_or_crop(img, self.input_sz, mode="random")
     label, _ = pad_and_or_crop(label, self.input_sz, mode="fixed",
                                coords=coords)
 
+    # print(img.shape)  # (128, 128, 3)
+    # outi = trans(img.astype('uint8'))
+    # outi.show()
+
+    ###################################################################
+    ###################################################################
     _, mask_img1 = self._filter_label(label)
     # uint8 tensor as masks should be binary, also for consistency with
     # prepare_train, but converted to float32 in main loop because is used
@@ -145,9 +164,14 @@ class _Coco(data.Dataset):
 
     # (img2) do jitter, no tf_mat change
     img2 = self.jitter_tf(img1)  # not in place, new memory
-    img1 = np.array(img1)
-    img2 = np.array(img2)
+    img1 = np.array(img1)  # (128, 128, 3)
+    img2 = np.array(img2)  # (128, 128, 3)
 
+    # outi = trans(img1.astype('uint8'))
+    # outi.show()
+    # outi = trans(img2.astype('uint8'))
+    # outi.show()
+####################################################
     # channels still last
     if not self.no_sobel:
       img1 = custom_greyscale_numpy(img1, include_rgb=self.include_rgb)
@@ -162,13 +186,13 @@ class _Coco(data.Dataset):
     img2 = torch.from_numpy(img2).permute(2, 0, 1).cuda()
 
     # mask if required
-    if self.mask_input:
+    if self.mask_input:  # False
       masked = 1 - mask_img1
       img1[:, masked] = 0
       img2[:, masked] = 0
 
     # (img2) do affine if nec, tf_mat changes
-    if self.use_random_affine:
+    if self.use_random_affine:  # False
       affine_kwargs = {"min_rot": self.aff_min_rot, "max_rot": self.aff_max_rot,
                        "min_shear": self.aff_min_shear,
                        "max_shear": self.aff_max_shear,
@@ -182,6 +206,9 @@ class _Coco(data.Dataset):
       affine2_to_1[0, 0] = 1
       affine2_to_1[1, 1] = 1
 
+    # affine2_to_1:  tensor([[1., 0., 0.],
+    #                        [0., 1., 0.]], device='cuda:0')
+
     # (img2) do random flip, tf_mat changes
     if np.random.rand() > self.flip_p:
       img2 = torch.flip(img2, dims=[2])  # horizontal, along width
@@ -191,6 +218,9 @@ class _Coco(data.Dataset):
       # No order swap, unlike functions...
       # hence top row is negated
       affine2_to_1[0, :] *= -1.
+      # affine2_to_1:  tensor([[-1., -0., -0.],
+      #                        [0., 1., 0.]], device='cuda:0')
+
 
     if RENDER_DATA:
       render(img1, mode="image", name=("train_data_img1_%d" % index))
@@ -198,6 +228,11 @@ class _Coco(data.Dataset):
       render(affine2_to_1, mode="matrix",
              name=("train_data_affine2to1_%d" % index))
       render(mask_img1, mode="mask", name=("train_data_mask_%d" % index))
+
+    # outi = trans(img1)
+    # outi.show()
+    # outi = trans(img2)
+    # outi.show()
 
     return img1, img2, affine2_to_1, mask_img1
 
@@ -280,6 +315,7 @@ class _Coco(data.Dataset):
     return img1, mask_img1
 
   def _prepare_test(self, index, img, label):
+    print("#########################################################")
     # This returns cpu tensors.
     #   Image: 3D with channels last, float32, in range [0, 1] (normally done
     #     by ToTensor).
@@ -327,14 +363,21 @@ class _Coco(data.Dataset):
       render(label, mode="label", name=("test_data_label_post_%d" % index))
       render(mask, mode="mask", name=("test_data_mask_%d" % index))
     # dataloader must return tensors (conversion forced in their code anyway)
+
+    # trans = torchvision.transforms.ToPILImage()
+    # outi = trans(img)
+    # outi.show()
+    # outi = trans(torch.from_numpy(label))
+    # outi.show()
+
     return img, torch.from_numpy(label), torch.from_numpy(mask.astype(np.uint8))
 
   def __getitem__(self, index):
     image_id = self.files[index]
     image, label = self._load_data(image_id)
-
+    # print("WE ARE IN GET ITEM")
     if self.purpose == "train":
-      if not self.single_mode:
+      if not self.single_mode:  # self.single_mode: False
         return self._prepare_train(index, image, label)
       else:
         return self._prepare_train_single(index, image, label)
@@ -407,10 +450,9 @@ class _Coco164kCuratedFew(_Coco):
     # Set paths
     # print("image_id: ", image_id)
     image_path = osp.join(self.root, "images", self.split, image_id + ".jpg")
-    label_path = osp.join(self.root, "annotations", "stuffthingmaps_trainval2017_2", self.split,
-                          image_id + ".png")
-    print("image_path: ", image_path)
-    print("label_path: ", label_path)
+    label_path = osp.join(self.root, "annotations", self.split, image_id + ".png")
+    # print("image_path: ", image_path)
+    # print("label_path: ", label_path)
 
     # image_path = osp.join(self.root, "images", "val2017", image_id + ".jpg").replace("\\","/")
     # label_path = osp.join(self.root, "annotations", "stuffthingmaps_trainval2017_2", "val2017",
