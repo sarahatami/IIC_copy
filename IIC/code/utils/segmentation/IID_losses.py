@@ -111,7 +111,7 @@ def IID_segmentation_loss_uncollapsed(x1_outs, x2_outs, all_affine2_to_1=None,
     render(all_mask_img1, mode="mask", name="invert_mask_")
 
   # zero out all irrelevant patches
-  bn, k, h, w = x1_outs.shape
+  bn, k, h, w = x1_outs.shape  # 120 15 128 128
   all_mask_img1 = all_mask_img1.view(bn, 1, h, w)  # mult, already float32
   x1_outs = x1_outs * all_mask_img1  # broadcasts
   x2_outs_inv = x2_outs_inv * all_mask_img1

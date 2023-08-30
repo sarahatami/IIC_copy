@@ -367,15 +367,15 @@ def train():
         avg_loss_batch /= config.num_sub_heads
         avg_loss_no_lamb_batch /= config.num_sub_heads
 
-        if ((b_i % 100) == 0) or (e_i == next_epoch):
-          print(
-            "Model ind %d epoch %d head %s batch: %d avg loss %f avg loss no "
-            "lamb %f "
-            "time %s" % \
-            (config.model_ind, e_i, head, b_i, avg_loss_batch.item(),
-             avg_loss_no_lamb_batch.item(), datetime.now()))
-
-          sys.stdout.flush()
+        # if ((b_i % 100) == 0) or (e_i == next_epoch): # for_colab
+        #   print(
+        #     "Model ind %d epoch %d head %s batch: %d avg loss %f avg loss no "
+        #     "lamb %f "
+        #     "time %s" % \
+        #     (config.model_ind, e_i, head, b_i, avg_loss_batch.item(),
+        #      avg_loss_no_lamb_batch.item(), datetime.now()))
+        #
+        #   sys.stdout.flush()
 
         if not np.isfinite(avg_loss_batch.item()):
           print("Loss is not finite... %s:" % str(avg_loss_batch))

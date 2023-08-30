@@ -14,12 +14,12 @@ def segmentation_create_dataloaders(config):  # define partitions and call datal
             config.mapping_assignment_partitions = ["all"]
             config.mapping_test_partitions = ["all"]
         elif "Coco164k" in config.dataset:
-            config.train_partitions = ["train2017", "val2017"] #for_colab
-            config.mapping_assignment_partitions = ["train2017", "val2017"]
-            config.mapping_test_partitions = ["train2017", "val2017"]
-            # config.train_partitions = [ "val2017"]
-            # config.mapping_assignment_partitions = [ "val2017"]
-            # config.mapping_test_partitions = [ "val2017"]
+            # config.train_partitions = ["train2017", "val2017"] #for_colab
+            # config.mapping_assignment_partitions = ["train2017", "val2017"]
+            # config.mapping_test_partitions = ["train2017", "val2017"]
+            config.train_partitions = [ "val2017"]
+            config.mapping_assignment_partitions = [ "val2017"]
+            config.mapping_test_partitions = [ "val2017"]
         else:
             raise NotImplementedError
 

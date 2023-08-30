@@ -130,9 +130,10 @@ def random_affine(img, min_rot=None, max_rot=None, min_shear=None,
 
 def perform_affine_tf(data, tf_matrices):
   # expects 4D tensor, we preserve gradients if there are any
+  print("perform_affine_tf*************")
 
-  n_i, k, h, w = data.shape
-  n_i2, r, c = tf_matrices.shape
+  n_i, k, h, w = data.shape  # 120 15 128 128
+  n_i2, r, c = tf_matrices.shape  # 120 2 3
   assert (n_i == n_i2)
   assert (r == 2 and c == 3)
 
