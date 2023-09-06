@@ -3,20 +3,13 @@ import torch.nn as nn
 
 class VGGTrunk(nn.Module):  # inherits from the nn.Module
   def __init__(self):
-    super(VGGTrunk, self).__init__()  # about inheritance
-  print("WE ARE IN VGG TRUNK")
+    super(VGGTrunk, self).__init__()  # inheritance
+
   def _make_layers(self, batch_norm=True):
     layers = []
     in_channels = self.in_channels
-    for tup in self.cfg:  # configuration of the VGGNet. a list of tuples
+    for tup in self.cfg:  # configuration of the VGGNet. a list of tuples. defined in net10a.py
       assert (len(tup) == 2)
-      print("tup: ", tup)       # tup: (64, 1)
-                                # tup: (128, 1)
-                                # tup: ('M', None)
-                                # tup: (256, 1)
-                                # tup: (256, 1)
-                                # tup: (512, 2)
-                                # tup: (512, 2)
 
       out, dilation = tup  # number of output channels and dilation rate for a convolutional layer
       sz = self.conv_size
@@ -38,20 +31,19 @@ class VGGTrunk(nn.Module):  # inherits from the nn.Module
         else:
           layers += [conv2d, nn.ReLU(inplace=True)]
         in_channels = out
-      print("layers: ", layers)
-      print("ENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+
     return nn.Sequential(*layers)
 
 
 class VGGNet(nn.Module):  # weights
-  print("WE ARE IN VGG NET")
 
   def __init__(self):
     super(VGGNet, self).__init__()
 
   def _initialize_weights(self, mode='fan_in'):
     for m in self.modules():
-      print("module: ", m)
+      print("module: ")
+      print(m)
       if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode=mode, nonlinearity='relu')#Kaiming normal initialization method
         if m.bias is not None:

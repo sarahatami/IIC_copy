@@ -346,12 +346,13 @@ def train():
 
         avg_loss_batch = None  # avg over the heads
         avg_loss_no_lamb_batch = None
-
+        print("########################")
+        print(all_mask_img1.shape)
         for i in range(config.num_sub_heads):
           loss, loss_no_lamb = loss_fn(x1_outs[i],
                                        x2_outs[i],
                                        all_affine2_to_1=all_affine2_to_1,
-                                       all_mask_img1=all_mask_img1,
+                                       all_mask_img1=all_mask_img1, # ([120/dl_num, 128, 128])
                                        lamb=lamb,
                                        half_T_side_dense=config.half_T_side_dense,
                                        half_T_side_sparse_min=config.half_T_side_sparse_min,
@@ -374,8 +375,8 @@ def train():
         #     "time %s" % \
         #     (config.model_ind, e_i, head, b_i, avg_loss_batch.item(),
         #      avg_loss_no_lamb_batch.item(), datetime.now()))
-        #
-        #   sys.stdout.flush()
+
+          # sys.stdout.flush()
 
         if not np.isfinite(avg_loss_batch.item()):
           print("Loss is not finite... %s:" % str(avg_loss_batch))
