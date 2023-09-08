@@ -89,7 +89,7 @@ def IID_segmentation_loss_uncollapsed(x1_outs, x2_outs, all_affine2_to_1=None,
                                       half_T_side_dense=None,  # 10
                                       half_T_side_sparse_min=None,  # 0
                                       half_T_side_sparse_max=None):  # 0
-    print("WE ARE IN IID_segmentation_loss_uncollapsed")
+    # print("WE ARE IN IID_segmentation_loss_uncollapsed")
     assert (x1_outs.requires_grad)
     assert (x2_outs.requires_grad)
     assert (not all_affine2_to_1.requires_grad)
@@ -99,11 +99,11 @@ def IID_segmentation_loss_uncollapsed(x1_outs, x2_outs, all_affine2_to_1=None,
     # bring x2 back into x1's spatial frame
     x2_outs_inv = perform_affine_tf(x2_outs, all_affine2_to_1)  # [120, 15, 128, 128]
 
-    if (half_T_side_sparse_min != 0) or (half_T_side_sparse_max != 0):
+    if (half_T_side_sparse_min != 0) or (half_T_side_sparse_max != 0):  # false
         x2_outs_inv = random_translation_multiple(x2_outs_inv,
                                                   half_side_min=half_T_side_sparse_min,
                                                   half_side_max=half_T_side_sparse_max)
-    print("############",(half_T_side_sparse_min != 0) or (half_T_side_sparse_max != 0))
+
     if RENDER:
         # indices added to each name by render()
         render(x1_outs, mode="image_as_feat", name="invert_img1_")

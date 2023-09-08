@@ -189,7 +189,7 @@ def train():
   if config.restart:
     optimiser.load_state_dict(dict["optimiser"])
 
-  heads = ["A", "B"]
+  heads = ["A"]
   if hasattr(config, "head_B_first") and config.head_B_first:
     heads = ["B", "A"]
 
@@ -251,7 +251,7 @@ def train():
     if e_i in config.lr_schedule:
       optimiser = update_lr(optimiser, lr_mult=config.lr_mult)
 
-    for head_i in range(2):
+    for head_i in range(1): #one_head
       head = heads[head_i]
       if head == "A":
         dataloaders = dataloaders_head_A
