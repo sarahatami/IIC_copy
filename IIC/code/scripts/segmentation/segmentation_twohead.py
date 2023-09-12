@@ -41,13 +41,13 @@ parser.add_argument("--dataset_root", type=str, required=True)
 parser.add_argument("--use_coarse_labels", default=False,
                     action="store_true")  # COCO, Potsdam
 
-# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
-#                     default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
-#                             "/segmentation/util/out/fine_to_coarse_dict.pickle")
+parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
+                    default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
+                            "/segmentation/util/out/fine_to_coarse_dict.pickle")
 
-parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #for_colab
-                    default="IIC/code/datasets/segmentation/"
-                            "util/out/fine_to_coarse_dict.pickle")
+# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #for_colab
+#                     default="IIC/code/datasets/segmentation/"
+#                             "util/out/fine_to_coarse_dict.pickle")
 
 parser.add_argument("--include_things_labels", default=False,
                     action="store_true")  # COCO
@@ -75,11 +75,11 @@ parser.add_argument("--batch_sz", type=int, required=True)  # num pairs
 parser.add_argument("--num_dataloaders", type=int, default=3)
 parser.add_argument("--num_sub_heads", type=int, default=5)
 
-# parser.add_argument("--out_root", type=str,
-#                     default="E:/MASTER/Uni/Term4/IIC_code - Copy/models/sara_models")
-
 parser.add_argument("--out_root", type=str,
-                    default="models/sara_models")  #for_colab
+                    default="E:/MASTER/Uni/Term4/IIC_code - Copy/models/sara_models")
+
+# parser.add_argument("--out_root", type=str,
+#                     default="models/sara_models")  #for_colab
 
 parser.add_argument("--restart", default=False, action="store_true")
 
@@ -171,13 +171,13 @@ else:
 
 def train():
   print("TRAIN STARTED")
-  print("config.restart: ",config.restart)
+
   dataloaders_head_A, mapping_assignment_dataloader, mapping_test_dataloader = \
     segmentation_create_dataloaders(config)
   dataloaders_head_B = dataloaders_head_A  # unlike for clustering datasets
 
   net = archs.__dict__[config.arch](config)
-  if config.restart:
+  if config.restart:  # False
     dict = torch.load(os.path.join(config.out_dir, dict_name),
                       map_location=lambda storage, loc: storage)
     net.load_state_dict(dict["net"])
@@ -227,7 +227,6 @@ def train():
     #                       sobel=(not config.no_sobel),
     #                       using_IR=config.using_IR)
 
-    print("config.epoch_stats ",config.epoch_stats)  # []
     # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1]))) #ERROR
     sys.stdout.flush()
     next_epoch = 1
@@ -275,19 +274,18 @@ def train():
       for tup in zip(*iterators):
         # tup = tuple len1 contains a list of 4 tensors of different sizes ([_,_,_,_])
         # one list per dataloader
-        # print("tup in train iterator type: ",type(tup[0]))  # <class 'list'>
-        # print("tup in train iterator len: ",tup[0][0].shape)  # torch.Size([120, 4, 128, 128]) img1
-        # print("tup in train iterator len: ",tup[0][1].shape)  # torch.Size([120, 4, 128, 128]) img2
-        # print("tup in train iterator len: ",tup[0][2].shape)  # torch.Size([120, 2, 3]) affine2_to_1
-        # print("tup in train iterator len: ",tup[0][3].shape)  # torch.Size([120, 128, 128])  mask_img1
+        # print(type(tup[0]))  # <class 'list'>
+        # print(tup[0][0].shape)  # torch.Size([120, 4, 128, 128]) img1
+        # print(tup[0][1].shape)  # torch.Size([120, 4, 128, 128]) img2
+        # print(tup[0][2].shape)  # torch.Size([120, 2, 3]) affine2_to_1
+        # print(tup[0][3].shape)  # torch.Size([120, 128, 128])  mask_img1
 
         net.module.zero_grad()
 
-        # print("in_channels: ",config.in_channels)  # 5
         if not config.no_sobel:  # True
           pre_channels = config.in_channels - 1
         else:
-          pre_channels = config.in_channels
+          pre_channels = config.in_channels  # 5
 
         all_img1 = torch.zeros(config.batch_sz, pre_channels,  # torch.Size([120, 4, 128, 128])
                                config.input_sz, config.input_sz).to(
@@ -335,9 +333,8 @@ def train():
         all_mask_img1 = all_mask_img1[:curr_total_batch_sz, :, :]
 
         if (not config.no_sobel):
-          all_img1 = sobel_process(all_img1, config.include_rgb,
+          all_img1 = sobel_process(all_img1, config.include_rgb,  # torch.Size([120, 5, 128, 128])
                                    using_IR=config.using_IR)
-          # print("all_img1 after sobel: ",all_img1.shape)  #  torch.Size([120, 5, 128, 128])
           all_img2 = sobel_process(all_img2, config.include_rgb,
                                    using_IR=config.using_IR)
 
@@ -346,13 +343,12 @@ def train():
 
         avg_loss_batch = None  # avg over the heads
         avg_loss_no_lamb_batch = None
-        print("########################")
-        print(all_mask_img1.shape)
+
         for i in range(config.num_sub_heads):
           loss, loss_no_lamb = loss_fn(x1_outs[i],
                                        x2_outs[i],
                                        all_affine2_to_1=all_affine2_to_1,
-                                       all_mask_img1=all_mask_img1, # ([120/dl_num, 128, 128])
+                                       all_mask_img1=all_mask_img1,  # ([120/dl_num, 128, 128])
                                        lamb=lamb,
                                        half_T_side_dense=config.half_T_side_dense,
                                        half_T_side_sparse_min=config.half_T_side_sparse_min,
@@ -405,7 +401,7 @@ def train():
     # -----------------------------------------------------------------------
     print("epoch_loss chack: ", epoch_loss)  #  [-1.5146036381162078]
     print("epoch_loss_no_lamb chack: ", epoch_loss_no_lamb)  # [-0.4495765782382818]
-    print("EVALUATION MOW !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # print("EVALUATION MOW !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     # is_best = segmentation_eval(config, net,
     #                             mapping_assignment_dataloader=mapping_assignment_dataloader,
     #                             mapping_test_dataloader=mapping_test_dataloader,
@@ -415,8 +411,7 @@ def train():
     is_best=True
 
     # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1]))) #ERROR
-
-    sys.stdout.flush()
+    # sys.stdout.flush()
 
     # axarr[0].clear()
     # axarr[0].plot(config.epoch_acc)

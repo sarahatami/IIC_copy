@@ -45,9 +45,15 @@ parser.add_argument("--dataset_root", type=str, required=True)
 
 parser.add_argument("--use_coarse_labels", default=False,
                     action="store_true")  # COCO, Potsdam
-parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO
-                    default="/users/xuji/iid/iid_private/code/datasets"
-                            "/segmentation/util/out/fine_to_coarse_dict.pickle")
+
+# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
+#                     default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
+#                             "/segmentation/util/out/fine_to_coarse_dict.pickle")
+
+parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #for_colab
+                    default="IIC/code/datasets/segmentation/"
+                            "util/out/fine_to_coarse_dict.pickle")
+
 parser.add_argument("--include_things_labels", default=False,
                     action="store_true")  # COCO
 parser.add_argument("--incl_animal_things", default=False,
@@ -72,7 +78,8 @@ parser.add_argument("--num_dataloaders", type=int, default=3)
 parser.add_argument("--num_sub_heads", type=int, default=5)
 
 parser.add_argument("--out_root", type=str,
-                    default="/scratch/shared/slow/xuji/iid_private")
+                    default="models/sara_models")  #for_colab
+
 parser.add_argument("--restart", default=False, action="store_true")
 
 parser.add_argument("--save_freq", type=int, default=5)
@@ -188,13 +195,13 @@ else:
   config.epoch_loss_no_lamb = []
 
   # torch.cuda.empty_cache()
-  _ = segmentation_eval(config, net,
-                        mapping_assignment_dataloader=mapping_assignment_dataloader,
-                        mapping_test_dataloader=mapping_test_dataloader,
-                        sobel=(not config.no_sobel),
-                        using_IR=config.using_IR)
+  # _ = segmentation_eval(config, net,
+  #                       mapping_assignment_dataloader=mapping_assignment_dataloader,
+  #                       mapping_test_dataloader=mapping_test_dataloader,
+  #                       sobel=(not config.no_sobel),
+  #                       using_IR=config.using_IR)
 
-  print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
+  # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
   sys.stdout.flush()
   next_epoch = 1
 
@@ -209,7 +216,7 @@ else:
 
 # Train ------------------------------------------------------------------------
 
-for e_i in xrange(next_epoch, config.num_epochs):
+for e_i in range(next_epoch, config.num_epochs):
   print("Starting e_i: %d %s" % (e_i, datetime.now()))
   sys.stdout.flush()
 
@@ -223,7 +230,8 @@ for e_i in xrange(next_epoch, config.num_epochs):
   avg_loss_no_lamb = 0.
   avg_loss_count = 0
 
-  for tup in itertools.izip(*iterators):
+  # for tup in itertools.izip(*iterators):
+  for tup in zip(*iterators):
     net.module.zero_grad()
 
     if not config.no_sobel:
@@ -244,7 +252,7 @@ for e_i in xrange(next_epoch, config.num_epochs):
                                 config.input_sz).to(torch.float32).cuda()
 
     curr_batch_sz = tup[0][0].shape[0]
-    for d_i in xrange(config.num_dataloaders):
+    for d_i in range(config.num_dataloaders):
       img1, img2, affine2_to_1, mask_img1 = tup[d_i]
       assert (img1.shape[0] == curr_batch_sz)
 
@@ -277,7 +285,7 @@ for e_i in xrange(next_epoch, config.num_epochs):
 
     avg_loss_batch = None  # avg over the heads
     avg_loss_no_lamb_batch = None
-    for i in xrange(config.num_sub_heads):
+    for i in range(config.num_sub_heads):
       loss, loss_no_lamb = loss_fn(x1_outs[i],
                                    x2_outs[i],
                                    all_affine2_to_1=all_affine2_to_1,
@@ -297,12 +305,12 @@ for e_i in xrange(next_epoch, config.num_epochs):
     avg_loss_batch /= config.num_sub_heads
     avg_loss_no_lamb_batch /= config.num_sub_heads
 
-    if ((b_i % 100) == 0) or (e_i == next_epoch):
-      print("Model ind %d epoch %d batch: %d avg loss %f avg loss no lamb %f "
-            "time %s" % \
-            (config.model_ind, e_i, b_i, avg_loss_batch.item(),
-             avg_loss_no_lamb_batch.item(), datetime.now()))
-      sys.stdout.flush()
+    # if ((b_i % 100) == 0) or (e_i == next_epoch):  # for_colab
+    #   print("Model ind %d epoch %d batch: %d avg loss %f avg loss no lamb %f "
+    #         "time %s" % \
+    #         (config.model_ind, e_i, b_i, avg_loss_batch.item(),
+    #          avg_loss_no_lamb_batch.item(), datetime.now()))
+    #   sys.stdout.flush()
 
     if not np.isfinite(float(avg_loss_batch.data)):
       print("Loss is not finite... %s:" % str(avg_loss_batch))
@@ -328,34 +336,34 @@ for e_i in xrange(next_epoch, config.num_epochs):
   config.epoch_loss.append(avg_loss)
   config.epoch_loss_no_lamb.append(avg_loss_no_lamb)
 
-  is_best = segmentation_eval(config, net,
-                              mapping_assignment_dataloader=mapping_assignment_dataloader,
-                              mapping_test_dataloader=mapping_test_dataloader,
-                              sobel=(
-                                not config.no_sobel),
-                              using_IR=config.using_IR)
+  # is_best = segmentation_eval(config, net,
+  #                             mapping_assignment_dataloader=mapping_assignment_dataloader,
+  #                             mapping_test_dataloader=mapping_test_dataloader,
+  #                             sobel=(
+  #                               not config.no_sobel),
+  #                             using_IR=config.using_IR)
+  is_best = True
+  # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
+  # sys.stdout.flush()
 
-  print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
-  sys.stdout.flush()
-
-  axarr[0].clear()
-  axarr[0].plot(config.epoch_acc)
-  axarr[0].set_title("acc (best), top: %f" % max(config.epoch_acc))
-
-  axarr[1].clear()
-  axarr[1].plot(config.epoch_avg_subhead_acc)
-  axarr[1].set_title("acc (avg), top: %f" % max(config.epoch_avg_subhead_acc))
-
-  axarr[2].clear()
-  axarr[2].plot(config.epoch_loss)
-  axarr[2].set_title("Loss")
-
-  axarr[3].clear()
-  axarr[3].plot(config.epoch_loss_no_lamb)
-  axarr[3].set_title("Loss no lamb")
-
-  fig.canvas.draw_idle()
-  fig.savefig(os.path.join(config.out_dir, "plots.png"))
+  # axarr[0].clear()
+  # axarr[0].plot(config.epoch_acc)
+  # axarr[0].set_title("acc (best), top: %f" % max(config.epoch_acc))
+  #
+  # axarr[1].clear()
+  # axarr[1].plot(config.epoch_avg_subhead_acc)
+  # axarr[1].set_title("acc (avg), top: %f" % max(config.epoch_avg_subhead_acc))
+  #
+  # axarr[2].clear()
+  # axarr[2].plot(config.epoch_loss)
+  # axarr[2].set_title("Loss")
+  #
+  # axarr[3].clear()
+  # axarr[3].plot(config.epoch_loss_no_lamb)
+  # axarr[3].set_title("Loss no lamb")
+  #
+  # fig.canvas.draw_idle()
+  # fig.savefig(os.path.join(config.out_dir, "plots.png"))
 
   if is_best or (e_i % config.save_freq == 0):
     net.module.cpu()

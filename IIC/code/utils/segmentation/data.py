@@ -8,7 +8,7 @@ from IIC.code.datasets.segmentation import cocostuff
 
 
 def segmentation_create_dataloaders(config):  # define partitions and call dataloader
-    if config.mode == "IID":
+    if config.mode == "IID+":
         if "Coco10k" in config.dataset:
             config.train_partitions = ["all"]
             config.mapping_assignment_partitions = ["all"]
@@ -66,6 +66,7 @@ def _create_dataloaders(config, dataset_class):
 
         train_imgs_list = []
         for train_partition in config.train_partitions:
+            print("PPPPPPPPPPPPPPPPPPP",train_partition)
             train_imgs_curr = dataset_class(
                 **{"config": config,
                    "split": train_partition,

@@ -452,9 +452,9 @@ class _Coco164kCuratedFew(_Coco):
 
     def _load_data(self, image_id):
         # Set paths
-        # print("image_id: ", image_id)
         image_path = osp.join(self.root, "images", self.split, image_id + ".jpg")
         label_path = osp.join(self.root, "annotations", self.split, image_id + ".png")
+        # print("image_id: ", image_id)
         # print("image_path: ", image_path)
         # print("label_path: ", label_path)
 
