@@ -41,13 +41,13 @@ parser.add_argument("--dataset_root", type=str, required=True)
 parser.add_argument("--use_coarse_labels", default=False,
                     action="store_true")  # COCO, Potsdam
 
-parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
-                    default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
-                            "/segmentation/util/out/fine_to_coarse_dict.pickle")
+# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #my_change
+#                     default="E:/MASTER/Uni/Term4/IIC_code/IIC/code/datasets"
+#                             "/segmentation/util/out/fine_to_coarse_dict.pickle")
 
-# parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #for_colab
-#                     default="IIC/code/datasets/segmentation/"
-#                             "util/out/fine_to_coarse_dict.pickle")
+parser.add_argument("--fine_to_coarse_dict", type=str,  # COCO #for_colab
+                    default="IIC/code/datasets/segmentation/"
+                            "util/out/fine_to_coarse_dict.pickle")
 
 parser.add_argument("--include_things_labels", default=False,
                     action="store_true")  # COCO
@@ -75,11 +75,11 @@ parser.add_argument("--batch_sz", type=int, required=True)  # num pairs
 parser.add_argument("--num_dataloaders", type=int, default=3)
 parser.add_argument("--num_sub_heads", type=int, default=5)
 
-parser.add_argument("--out_root", type=str,
-                    default="E:/MASTER/Uni/Term4/IIC_code - Copy/models/sara_models")
-
 # parser.add_argument("--out_root", type=str,
-#                     default="models/sara_models")  #for_colab
+#                     default="E:/MASTER/Uni/Term4/IIC_code - Copy/models/sara_models")
+
+parser.add_argument("--out_root", type=str,
+                    default="models/sara_models")  #for_colab
 
 parser.add_argument("--restart", default=False, action="store_true")
 
@@ -399,16 +399,14 @@ def train():
 
     # Eval
     # -----------------------------------------------------------------------
-    print("epoch_loss chack: ", epoch_loss)  #  [-1.5146036381162078]
-    print("epoch_loss_no_lamb chack: ", epoch_loss_no_lamb)  # [-0.4495765782382818]
-    # print("EVALUATION MOW !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    # is_best = segmentation_eval(config, net,
-    #                             mapping_assignment_dataloader=mapping_assignment_dataloader,
-    #                             mapping_test_dataloader=mapping_test_dataloader,
-    #                             sobel=(
-    #                               not config.no_sobel),
-    #                             using_IR=config.using_IR)  #ERROR
-    is_best=True
+    is_best = segmentation_eval(config, net,
+                                mapping_assignment_dataloader=mapping_assignment_dataloader,
+                                mapping_test_dataloader=mapping_test_dataloader,
+                                sobel=(
+                                  not config.no_sobel),
+                                using_IR=config.using_IR)  #ERROR
+
+    # is_best=True
 
     # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1]))) #ERROR
     # sys.stdout.flush()

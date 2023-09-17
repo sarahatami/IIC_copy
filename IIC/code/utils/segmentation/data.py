@@ -17,9 +17,9 @@ def segmentation_create_dataloaders(config):  # define partitions and call datal
             # config.train_partitions = ["train2017", "val2017"] #for_colab
             # config.mapping_assignment_partitions = ["train2017", "val2017"]
             # config.mapping_test_partitions = ["train2017", "val2017"]
-            config.train_partitions = [ "val2017"]
-            config.mapping_assignment_partitions = [ "val2017"]
-            config.mapping_test_partitions = [ "val2017"]
+            config.train_partitions = ["val2017"]
+            config.mapping_assignment_partitions = ["val2017"]
+            config.mapping_test_partitions = ["val2017"]
         else:
             raise NotImplementedError
 
@@ -66,7 +66,6 @@ def _create_dataloaders(config, dataset_class):
 
         train_imgs_list = []
         for train_partition in config.train_partitions:
-            print("PPPPPPPPPPPPPPPPPPP",train_partition)
             train_imgs_curr = dataset_class(
                 **{"config": config,
                    "split": train_partition,
